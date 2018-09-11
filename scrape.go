@@ -25,30 +25,14 @@ var args = []string{
 	"--lang=ja",
 }
 
-type Day struct {
-	date      string
-	dayOfWeek string
-	content   string
-}
-
 func Scrape() {
 	//var wg sync.WaitGroup
 
-	scrapeTable(func(query *goquery.Document) {
+	scrapeWrap(func(query *goquery.Document) {
 		query.Find(".table01").Each(func(_ int, s *goquery.Selection) {
 			//wg.Add(1)
 			s.Find("tr").Each(func(i int, s2 *goquery.Selection) {
-				if i == 0 {
-					fmt.Printf("day of week: %s\n", s.Find("th").Text())
-				} else {
-					fmt.Println("else")
-					s2.Find(".top").Each(func(_ int, s2 *goquery.Selection) {
-						text := s2.Text()
-						if text != "" {
-							fmt.Printf("content: %s\n", text)
-						}
-					})
-				}
+				scrapeCell(i, s2)
 			})
 			//wg.Done()
 		})
@@ -58,7 +42,7 @@ func Scrape() {
 
 }
 
-func scrapeTable(parseDom func(query *goquery.Document), url string) {
+func scrapeWrap(parseDom func(query *goquery.Document), url string) {
 	log.Println("parseTop start")
 	driver := agouti.ChromeDriver()
 	err := driver.Start()
