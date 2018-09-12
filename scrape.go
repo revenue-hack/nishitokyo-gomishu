@@ -25,21 +25,45 @@ var args = []string{
 	"--lang=ja",
 }
 
-func Scrape() {
-	//var wg sync.WaitGroup
+type Receive struct {
+	Cell Celler
+	Err  error
+}
 
+func Scrape(ch chan Receive) {
+	var dateStrs []string
 	scrapeWrap(func(query *goquery.Document) {
-		query.Find(".table01").Each(func(_ int, s *goquery.Selection) {
-			//wg.Add(1)
-			s.Find("tr").Each(func(i int, s2 *goquery.Selection) {
-				scrapeCell(i, s2)
+		// get date and index
+		query.Find(".h2bg").Each(func(i int, s *goquery.Selection) {
+			dateStrs = append(dateStrs, s.Text())
+		})
+		// access cell in table
+		go query.Find(".table01").Each(func(i int, s *goquery.Selection) {
+			currentDateStr := dateStrs[i]
+			go s.Find("tr").Each(func(i2 int, s2 *goquery.Selection) {
+				if i2 != 0 {
+					scrapeCell(ch, currentDateStr, s2)
+				}
 			})
-			//wg.Done()
 		})
 	}, firstLink)
-	//wg.Wait()
-	fmt.Println("done")
+}
 
+var ScrapeCellError = func(cell *Celler, err error) error {
+	return fmt.Errorf("scrape fail cell is %v\terr is %v\n", *cell, err)
+}
+
+func scrapeCell(ch chan Receive, dateStr string, s *goquery.Selection) {
+	s.Find(".top").Each(func(i int, s2 *goquery.Selection) {
+		if text := s2.Text(); len(text) > 2 {
+			cell, err := NewCell(i, dateStr, text)
+			if err != nil {
+				ch <- Receive{nil, ScrapeCellError(&cell, err)}
+			} else {
+				ch <- Receive{cell, nil}
+			}
+		}
+	})
 }
 
 func scrapeWrap(parseDom func(query *goquery.Document), url string) {

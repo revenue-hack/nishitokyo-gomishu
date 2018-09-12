@@ -41,3 +41,8 @@ func (d *DayOfWeek) String() string {
 		return ""
 	}
 }
+
+func CalcDayOfWeek(index int) DayOfWeek {
+	nr := index % 7
+	return DayOfWeek(nr)
+}

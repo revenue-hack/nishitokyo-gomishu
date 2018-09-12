@@ -1,36 +1,41 @@
 package nisitokyo_gomishu
 
-import (
-	"fmt"
-
-	"github.com/PuerkitoBio/goquery"
-)
-
 type Cell struct {
 	Date
+	DayOfWeek
 	content string
 }
 
 type Celler interface {
+	DayOfWeeker
 	Dater
 	Content() string
+	SetContent(content string)
 }
 
 func (c *Cell) Content() string {
 	return c.content
 }
 
-/*
-func (c *Cell) NewCell(dateStr string) (Celler, error) {
+func (c *Cell) SetContent(content string) {
+	c.content = content
 }
-*/
 
-func scrapeCell(i int, s *goquery.Selection) {
-	if i == 0 {
-		fmt.Printf("day of week: %s\n", s.Find("th").Text())
-	} else {
-		s.Find(".top").Each(func(_ int, s2 *goquery.Selection) {
-			//text := s2.Text()
-		})
+func NewCell(index int, dateStr, content string) (Celler, error) {
+	cell := new(Cell)
+	y, m, _, err := parseDate(dateStr)
+	if err != nil {
+		return nil, err
 	}
+	d, detail, err := parseContent(content)
+	if err != nil {
+		return nil, err
+	}
+	cell.SetDay(d)
+	cell.SetMonth(m)
+	cell.SetYear(y)
+	cell.SetContent(detail)
+	cell.DayOfWeek = CalcDayOfWeek(index)
+
+	return cell, nil
 }
