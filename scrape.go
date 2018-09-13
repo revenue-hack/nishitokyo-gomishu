@@ -6,6 +6,8 @@ import (
 
 	"fmt"
 
+	"sync"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/sclevine/agouti"
 )
@@ -32,6 +34,7 @@ type Receive struct {
 
 func Scrape(ch chan Receive) {
 	var dateStrs []string
+	var wg sync.WaitGroup
 	scrapeWrap(func(query *goquery.Document) {
 		// get date and index
 		query.Find(".h2bg").Each(func(i int, s *goquery.Selection) {
@@ -42,19 +45,22 @@ func Scrape(ch chan Receive) {
 			currentDateStr := dateStrs[i]
 			go s.Find("tr").Each(func(i2 int, s2 *goquery.Selection) {
 				if i2 != 0 {
-					scrapeCell(ch, currentDateStr, s2)
+					go scrapeCell(&wg, ch, currentDateStr, s2)
 				}
 			})
 		})
 	}, firstLink)
+	wg.Wait()
+	close(ch)
 }
 
 var ScrapeCellError = func(cell *Celler, err error) error {
 	return fmt.Errorf("scrape fail cell is %v\terr is %v\n", *cell, err)
 }
 
-func scrapeCell(ch chan Receive, dateStr string, s *goquery.Selection) {
+func scrapeCell(wg *sync.WaitGroup, ch chan Receive, dateStr string, s *goquery.Selection) {
 	s.Find(".top").Each(func(i int, s2 *goquery.Selection) {
+		wg.Add(1)
 		if text := s2.Text(); len(text) > 2 {
 			cell, err := NewCell(i, dateStr, text)
 			if err != nil {
@@ -63,6 +69,7 @@ func scrapeCell(ch chan Receive, dateStr string, s *goquery.Selection) {
 				ch <- Receive{cell, nil}
 			}
 		}
+		wg.Done()
 	})
 }
 
