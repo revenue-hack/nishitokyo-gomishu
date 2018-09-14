@@ -5,8 +5,15 @@ import (
 
 	"sync"
 
+	"log"
+	"os"
+
 	"github.com/revenue-hack/nishitokyo-gomishu"
 )
+
+var scrapeError = func(rec nisitokyo_gomishu.Receive) {
+	log.Printf("scrape fail receive is %v\n", rec.Cell)
+}
 
 func main() {
 	ch := make(chan nisitokyo_gomishu.Receive, 100)
@@ -21,7 +28,8 @@ func main() {
 				break
 			}
 			if rec.Err != nil {
-				fmt.Println("errrrrrrrrrrrr")
+				scrapeError(rec)
+				os.Exit(1)
 			}
 			fmt.Printf("con: %s, month: %d, day: %d\n", rec.Cell.Content(), rec.Cell.Month(), rec.Cell.Day())
 		}
@@ -30,5 +38,6 @@ func main() {
 	nisitokyo_gomishu.Scrape(ch)
 
 	wg.Wait()
-	fmt.Println("done")
+
+	fmt.Println("success")
 }
